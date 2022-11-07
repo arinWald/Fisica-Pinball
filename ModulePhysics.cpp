@@ -3,6 +3,7 @@
 #include "ModuleInput.h"
 #include "ModuleRender.h"
 #include "ModulePhysics.h"
+#include "ModuleSceneIntro.h"
 #include "p2Point.h"
 #include "math.h"
 
@@ -40,7 +41,7 @@ bool ModulePhysics::Start()
 	world->SetContactListener(this);
 
 	// Create the main static ground of the scenario: a big circle in the middle of the screen
-	CreateScenarioGround();
+	//CreateScenarioGround();
 
 	// Create a static, shapeless ground body
 	// This will be used to create joints like a mouse joint
@@ -273,68 +274,53 @@ void ModulePhysics::CreateScenarioGround()
 	big_ball->CreateFixture(&fixture);
 }
 
-PhysBody* ModulePhysics::CreateCircle(int x, int y, int radius)
+PhysBody* ModulePhysics::CreateCircle(int x, int y, int radius, b2BodyType type)
 {
-	// Create BODY at position x,y
 	b2BodyDef body;
-	body.type = b2_dynamicBody;
+	body.type = type;
 	body.position.Set(PIXEL_TO_METERS(x), PIXEL_TO_METERS(y));
+	body.bullet = true;
 
-	// Add BODY to the world
 	b2Body* b = world->CreateBody(&body);
 
-	// Create SHAPE
 	b2CircleShape shape;
 	shape.m_radius = PIXEL_TO_METERS(radius);
-
-	// Create FIXTURE
 	b2FixtureDef fixture;
 	fixture.shape = &shape;
 	fixture.density = 1.0f;
 
-	// Add fixture to the BODY
 	b->CreateFixture(&fixture);
 
-	// Create our custom PhysBody class
 	PhysBody* pbody = new PhysBody();
 	pbody->body = b;
 	b->SetUserData(pbody);
 	pbody->width = pbody->height = radius;
 
-	// Return our PhysBody class
 	return pbody;
 }
 
-PhysBody* ModulePhysics::CreateRectangle(int x, int y, int width, int height)
+PhysBody* ModulePhysics::CreateRectangle(int x, int y, int width, int height, b2BodyType type)
 {
-	// Create BODY at position x,y
 	b2BodyDef body;
-	body.type = b2_dynamicBody;
+	body.type = type;
 	body.position.Set(PIXEL_TO_METERS(x), PIXEL_TO_METERS(y));
 
-	// Add BODY to the world
 	b2Body* b = world->CreateBody(&body);
-
-	// Create SHAPE
 	b2PolygonShape box;
 	box.SetAsBox(PIXEL_TO_METERS(width) * 0.5f, PIXEL_TO_METERS(height) * 0.5f);
 
-	// Create FIXTURE
 	b2FixtureDef fixture;
 	fixture.shape = &box;
 	fixture.density = 1.0f;
 
-	// Add fixture to the BODY
 	b->CreateFixture(&fixture);
 
-	// Create our custom PhysBody class
 	PhysBody* pbody = new PhysBody();
 	pbody->body = b;
 	b->SetUserData(pbody);
 	pbody->width = width * 0.5f;
 	pbody->height = height * 0.5f;
 
-	// Return our PhysBody class
 	return pbody;
 }
 
@@ -410,6 +396,22 @@ PhysBody* ModulePhysics::CreateChain(int x, int y, int* points, int size)
 
 	// Return our PhysBody class
 	return pbody;
+}
+
+b2RevoluteJoint* ModulePhysics::CreateRevoluteJoint(PhysBody* A, b2Vec2 anchorA, PhysBody* B, b2Vec2 anchorB, float angle, bool collideConnected, bool enableLimit)
+{
+	b2RevoluteJointDef revoluteJointDef;
+	revoluteJointDef.bodyA = A->body;
+	revoluteJointDef.bodyB = B->body;
+	revoluteJointDef.collideConnected = collideConnected;
+	revoluteJointDef.localAnchorA.Set(anchorA.x, anchorA.y);
+	revoluteJointDef.localAnchorB.Set(anchorB.x, anchorB.y);
+	revoluteJointDef.referenceAngle = 0;
+	revoluteJointDef.enableLimit = enableLimit;
+	revoluteJointDef.lowerAngle = -DEG_TO_RAD(angle);
+	revoluteJointDef.upperAngle = DEG_TO_RAD(angle);
+
+	return (b2RevoluteJoint*)world->CreateJoint(&revoluteJointDef);
 }
 
 // Callback function to collisions with Box2D
